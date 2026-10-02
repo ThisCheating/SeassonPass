@@ -1,0 +1,47 @@
+name: Compilar Plugin Minecraft 1.20+
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar codigo fuente
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21 (Minecraft 1.20.5+)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Descomprimir archivos si estan en un ZIP
+        run: |
+          if [ -f "ThisGamepasses-GitHub.zip" ]; then
+            unzip -o ThisGamepasses-GitHub.zip
+          fi
+
+      - name: Compilar con Maven
+        run: mvn clean package --batch-mode
+
+      - name: Subir Artifact (.jar compilado)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Plugin-1.20-Build
+          path: target/*.jar
+
+      - name: Crear Release Automático si es un Tag
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: target/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
